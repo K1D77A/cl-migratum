@@ -55,8 +55,13 @@
    :provider-scan-pattern
    :provider-file-mappings
    :make-provider
-   :touch-migration))
+   :touch-migration
+   :*load-system-p*))
+
 (in-package :cl-migratum.provider.local-path)
+
+(defparameter *load-system-p* t
+  "Allows the user to disable system loading (asdf or quicklisp) when applying lisp migrations.")
 
 (defclass local-path-migration (base-migration)
   ((up-script-path
@@ -110,10 +115,11 @@
       (error "No package specified for migration ~A" id))
     (unless handler-name
       (error "No handler specified for migration ~A" id))
-    #+quicklisp
-    (ql:quickload system-name :verbose nil :silent t)
-    #-quicklisp
-    (asdf:load-system system-name :verbose nil)
+    (when *load-system-p* 
+      #+quicklisp
+      (ql:quickload system-name :verbose nil :silent t)
+      #-quicklisp
+      (asdf:load-system system-name :verbose nil))
     (unless (find-package package-name)
       (error "Cannot find package ~A for migration ~A" package-name id))
     (let* ((package (find-package package-name))
